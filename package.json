@@ -1,16 +1,18 @@
 {
   "name": "opentelemetry-js-example",
   "version": "1.0.0",
-  "main": "index.js",
   "repository": "git@github.com:icco/opentelemetry-js-example.git",
   "author": "Nat Welch <nat@natwelch.com>",
   "license": "MIT",
   "private": true,
   "dependencies": {
     "@opentelemetry/api": "^1.0.3",
-    "@opentelemetry/api-metrics": "^0.27.0",
+    "@opentelemetry/api-metrics": "^0.26.0",
+    "@opentelemetry/exporter-otlp-proto": "^0.26.0",
     "@opentelemetry/instrumentation-express": "^0.26.0",
-    "@opentelemetry/sdk-node": "^0.27.0",
+    "@opentelemetry/instrumentation-http": "^0.26.0",
+    "@opentelemetry/propagator-aws-xray": "^1.0.0",
+    "@opentelemetry/sdk-node": "^0.26.0",
     "express": "^4.17.1"
   }
 }
