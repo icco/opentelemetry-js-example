@@ -24,6 +24,7 @@ import { Instrumentation } from "@opentelemetry/instrumentation";
 import { NodeSDK, NodeSDKConfiguration } from "@opentelemetry/sdk-node";
 import { MetricExporter, Processor, UngroupedProcessor } from "@opentelemetry/sdk-metrics-base";
 import express from "express";
+import { metrics } from "@opentelemetry/api-metrics";
 
 interface OpenTelemetryOptions {
   express?: boolean;
@@ -136,6 +137,7 @@ sdk.start()
 const app = express()
 
 app.get('/', (req, res) => {
+  metrics.getMeter("example").createCounter("nat-counter").add(1)
   res.send('Hello World!')
 })
 
