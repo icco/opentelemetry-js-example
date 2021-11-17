@@ -2,7 +2,6 @@ import { HttpInstrumentation } from "@opentelemetry/instrumentation-http";
 import { Resource } from "@opentelemetry/resources";
 import { SemanticResourceAttributes } from "@opentelemetry/semantic-conventions";
 import { ExpressInstrumentation } from "@opentelemetry/instrumentation-express";
-import { MongoDBInstrumentation } from "@opentelemetry/instrumentation-mongodb";
 import { AsyncLocalStorageContextManager } from "@opentelemetry/context-async-hooks";
 import { JaegerPropagator } from "@opentelemetry/propagator-jaeger";
 import { B3InjectEncoding, B3Propagator } from "@opentelemetry/propagator-b3";
@@ -13,34 +12,21 @@ import {
   W3CBaggagePropagator,
 } from "@opentelemetry/core";
 import {
-  Context,
-  context,
   diag,
   DiagConsoleLogger,
   DiagLogLevel,
-  Span,
-  SpanStatusCode,
-  SpanKind,
   TextMapPropagator,
-  trace,
-  Tracer,
 } from "@opentelemetry/api";
-import { metrics, Meter } from "@opentelemetry/api-metrics";
 import { AWSXRayPropagator } from "@opentelemetry/propagator-aws-xray";
 import { OTLPMetricExporter, OTLPTraceExporter } from "@opentelemetry/exporter-otlp-proto";
 import { BatchSpanProcessor, SpanExporter, SpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { Instrumentation } from "@opentelemetry/instrumentation";
 import { NodeSDK, NodeSDKConfiguration } from "@opentelemetry/sdk-node";
 import { MetricExporter, Processor, UngroupedProcessor } from "@opentelemetry/sdk-metrics-base";
-import { NestInstrumentation } from "@opentelemetry/instrumentation-nestjs-core";
-
-const TRACER_NAME = "ping-logger";
-const METER_NAME = "ping-logger";
+import express from "express";
 
 interface OpenTelemetryOptions {
   express?: boolean;
-  nest?: boolean;
-  mongo?: boolean;
   debug?: boolean;
 
   environment?: string;
@@ -108,42 +94,6 @@ function getConfiguration(options: OpenTelemetryOptions): Partial<NodeSDKConfigu
     instrumentations.push(new ExpressInstrumentation());
   }
 
-  // nest?
-  if (options.nest) {
-    instrumentations.push(new NestInstrumentation());
-  }
-
-  // mongo
-  if (options.mongo) {
-    instrumentations.push(
-      new MongoDBInstrumentation({
-        enhancedDatabaseReporting: true,
-        responseHook: function (span, responseInfo: any) {
-          // As responseInfo.data.result can contain sensitive user info, we omit that from the span metadata
-          // DB collection name is already in the metadata.
-          //
-          // See https://docs.mongodb.com/manual/reference/method/db.runCommand/#response for operationTime definition.
-          if (responseInfo.data.result.operationTime !== undefined) {
-            span.setAttribute(
-              "db.operation_time",
-              JSON.stringify(responseInfo.data.result.operationTime),
-            );
-          }
-
-          if (responseInfo.data.connection !== undefined) {
-            for (const [key, value] of Object.entries(responseInfo.data.connection)) {
-              span.setAttribute(`db.connection.${key}`, JSON.stringify(value));
-            }
-          }
-
-          if (options.debug) {
-            span.setAttribute("config.debug", "true");
-          }
-        },
-      }),
-    );
-  }
-
   if (options.debug) {
     diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
   }
@@ -168,3 +118,28 @@ function getConfiguration(options: OpenTelemetryOptions): Partial<NodeSDKConfigu
 function createInstrumentation(options: Partial<NodeSDKConfiguration>): NodeSDK {
   return new NodeSDK(options);
 }
+
+
+const sdk = createInstrumentation(getConfiguration({
+  express: true,
+  debug: true,
+
+  service: "nat-example",
+  environment: "dev-local",
+  version: process.env.npm_package_version,
+
+  sumoTraceURL: process.env.SUMOLOGIC_TRACE_URL,
+  sumoMetricsURL: process.env.SUMOLOGIC_METRIC_URL,
+}))
+sdk.start()
+
+const app = express()
+
+app.get('/', (req, res) => {
+  res.send('Hello World!')
+})
+
+const port = 8080;
+app.listen(port, () => {
+  console.log(`Example app listening at http://localhost:${port}`)
+})
