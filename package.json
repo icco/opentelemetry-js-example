@@ -16,7 +16,7 @@
     "@opentelemetry/instrumentation-http": "^0.26.0",
     "@opentelemetry/propagator-aws-xray": "^1.0.0",
     "@opentelemetry/sdk-node": "^0.26.0",
-    "express": "^4.17.1"
+    "express": "^4.17.3"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
